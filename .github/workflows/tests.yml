@@ -1,0 +1,26 @@
+# Unit and API tests for Hana Fady's parts (login, tokens, users, templates,
+# frontend login helpers, security headers). Database tests are skipped here
+# because no database is attached; they run against Neon dev in the team repo.
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: npm test
