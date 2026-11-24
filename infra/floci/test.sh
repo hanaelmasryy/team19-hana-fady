@@ -181,6 +181,15 @@ expect ok      "team19-db-admin can read the database settings"   '' as_role tea
 # to team19-db only, is proven with the policy simulator in section 5
 # (allowed for team19-db, implicitly denied for any other database).
 expect refused "team19-db-admin cannot delete the database (explicit deny)" '' as_role team19-db-admin aws rds delete-db-instance --db-instance-identifier "$DB_INSTANCE_ID" --skip-final-snapshot
+# ModifyDBInstance could reset the master password (then log in with it and
+# read all data, getting around the rds-db:connect deny), turn IAM login off
+# or make the database public. IAM has no condition key that limits it to
+# "safe" changes, so the db-admin is denied it; settings are changed only by
+# the deployer identity.
+NEW_PW="$(openssl rand -hex 20)"
+expect refused "team19-db-admin cannot reset the master password (explicit deny)" 'AccessDenied|not authorized' as_role team19-db-admin aws rds modify-db-instance --db-instance-identifier "$DB_INSTANCE_ID" --master-user-password "$NEW_PW" --apply-immediately
+unset NEW_PW
+expect refused "team19-db-admin cannot turn off IAM database login (explicit deny)" 'AccessDenied|not authorized' as_role team19-db-admin aws rds modify-db-instance --db-instance-identifier "$DB_INSTANCE_ID" --no-enable-iam-database-authentication --apply-immediately
 expect refused "team19-db-admin cannot give itself more rights"   '' as_role team19-db-admin aws iam put-role-policy --role-name team19-db-admin --policy-name grab --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]}'
 expect refused "Even the administrator cannot delete it: deletion protection" 'protect' aws rds delete-db-instance --db-instance-identifier "$DB_INSTANCE_ID" --skip-final-snapshot
 
@@ -195,7 +204,8 @@ expect_decision "team19-db-admin: connect as app_rw"       explicitDeny team19-d
 expect_decision "team19-api: delete the database"          explicitDeny team19-api       rds:DeleteDBInstance "$DB_ARN"
 expect_decision "team19-db-admin: delete the database"     explicitDeny team19-db-admin  rds:DeleteDBInstance "$DB_ARN"
 expect_decision "team19-db-admin: snapshot this database"  allowed      team19-db-admin  rds:CreateDBSnapshot "$DB_ARN"
-expect_decision "team19-db-admin: modify another database" implicitDeny team19-db-admin  rds:ModifyDBInstance "arn:aws:rds:$REGION:$ACCOUNT_ID:db:other-db"
+expect_decision "team19-db-admin: change this database's settings" explicitDeny team19-db-admin rds:ModifyDBInstance "$DB_ARN"
+expect_decision "team19-db-admin: snapshot another database" implicitDeny team19-db-admin  rds:CreateDBSnapshot "arn:aws:rds:$REGION:$ACCOUNT_ID:db:other-db"
 
 # =====================================================================
 section "6. Database rules (backend/db/check.sql on RDS)"
