@@ -1,0 +1,78 @@
+# Floci (AWS emulator): RDS PostgreSQL + IAM roles/policies – Hana Fady
+# Builds the AWS version of our database in Floci and runs the security
+# tests in infra/floci/test.sh. No AWS account or secrets are needed:
+# everything runs inside this job and is thrown away at the end.
+name: Floci – RDS and IAM security tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/floci/**'
+      - 'backend/db/**'
+      - '.github/workflows/floci-rds-iam.yml'
+  pull_request:
+    paths:
+      - 'infra/floci/**'
+      - 'backend/db/**'
+      - '.github/workflows/floci-rds-iam.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: floci-rds-iam-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rds-iam:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      AWS_ENDPOINT_URL: http://localhost:4566
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test        # Floci's bootstrap credential, emulator only
+      AWS_SECRET_ACCESS_KEY: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tools
+        run: |
+          aws --version
+          psql --version || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
+          jq --version
+
+      - name: Start Floci with IAM policy enforcement
+        run: |
+          docker run -d --name floci -u root \
+            -p 4566:4566 -p 7001-7020:7001-7020 \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -e FLOCI_SERVICES_IAM_ENFORCEMENT_ENABLED=true \
+            -e FLOCI_SERVICES_RDS_PROXY_BASE_PORT=7001 \
+            -e FLOCI_SERVICES_RDS_PROXY_MAX_PORT=7020 \
+            -e FLOCI_SERVICES_RDS_ENDPOINT_HOST=localhost \
+            floci/floci:2.5.0
+          for i in $(seq 1 60); do
+            aws sts get-caller-identity >/dev/null 2>&1 && break
+            sleep 2
+          done
+          docker logs floci 2>&1 | grep -iE "IAM: policy enforcement|started in" || true
+
+      - name: Build RDS PostgreSQL + IAM roles (setup.sh)
+        run: bash infra/floci/setup.sh
+
+      - name: Security tests (test.sh)
+        run: bash infra/floci/test.sh
+
+      - name: Save results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: floci-rds-iam-results
+          path: infra/floci/.state/results.md
+          if-no-files-found: ignore
+
+      - name: Floci log (on failure)
+        if: failure()
+        run: docker logs floci 2>&1 | tail -n 200
