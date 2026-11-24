@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  <title>Log in · Onboarding Portal</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <span class="brand">Onboarding Portal</span>
+  </header>
+
+  <main class="container narrow">
+    <form id="login-form" class="card form" novalidate>
+      <h1>Log in</h1>
+      <p class="muted">Use the account your administrator created for you.</p>
+
+      <p id="login-notice" class="notice" role="status" hidden></p>
+
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="username"
+             maxlength="254" required autofocus>
+
+      <label for="password">Password</label>
+      <div class="password-row">
+        <input id="password" name="password" type="password" autocomplete="current-password"
+               maxlength="200" required>
+        <button id="toggle-password" type="button" class="link-button"
+                aria-controls="password" aria-pressed="false">Show</button>
+      </div>
+
+      <p id="login-error" class="error" role="alert" hidden></p>
+
+      <button id="login-button" type="submit">Log in</button>
+      <p class="muted small">No account? Ask an administrator. There is no self sign-up.</p>
+    </form>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  <title>Users · Onboarding Portal</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <span class="brand">Onboarding Portal</span>
+  </header>
+
+  <main class="container wide">
+    <div class="page-head">
+      <h1>User accounts</h1>
+      <button id="new-user" type="button">New user</button>
+    </div>
+    <p id="page-message" class="message" hidden></p>
+
+    <!-- Create (Admin only page) -->
+    <section id="create-view" class="card" hidden>
+      <form id="user-form" class="form" novalidate autocomplete="off">
+        <h2>New user</h2>
+        <p class="muted small">There is no self sign-up: you create the account and give the person their password privately (not by email or group chat).</p>
+
+        <label for="u-name">Full name</label>
+        <input id="u-name" maxlength="100" required>
+
+        <label for="u-email">Email</label>
+        <input id="u-email" type="email" maxlength="254" required autocomplete="off">
+
+        <label for="u-role">Role</label>
+        <select id="u-role">
+          <option value="Customer">Customer: follows their own onboarding plan</option>
+          <option value="Staff">Staff: works on plans and tasks</option>
+          <option value="Admin">Admin: manages templates, users and plans</option>
+        </select>
+
+        <label for="u-password">Password <span class="muted">(at least 12 characters)</span></label>
+        <div class="password-row">
+          <input id="u-password" type="password" minlength="12" maxlength="200" required autocomplete="new-password">
+          <button id="generate-password" type="button" class="link-button">Generate</button>
+          <button id="show-password" type="button" class="link-button" aria-controls="u-password" aria-pressed="false">Show</button>
+        </div>
+
+        <p id="form-error" class="error" role="alert" hidden></p>
+        <div class="actions">
+          <button id="create-user" type="submit">Create account</button>
+          <button id="cancel-create" type="button" class="secondary">Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- List -->
+    <section aria-labelledby="list-title">
+      <h2 id="list-title" class="visually-hidden">User list</h2>
+      <form id="filters" class="toolbar" role="search">
+        <label>Search
+          <input id="search" type="search" maxlength="100" placeholder="Name or email">
+        </label>
+        <label>Role
+          <select id="role-filter">
+            <option value="">All roles</option>
+            <option value="Admin">Admin</option>
+            <option value="Staff">Staff</option>
+            <option value="Customer">Customer</option>
+          </select>
+        </label>
+        <label>Status
+          <select id="active-filter">
+            <option value="true">Active</option>
+            <option value="false">Deactivated</option>
+            <option value="all">All</option>
+          </select>
+        </label>
+      </form>
+      <div class="table-wrap">
+        <table class="data">
+          <thead>
+            <tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Role</th>
+                <th scope="col">Status</th><th scope="col">Created</th><th scope="col">Actions</th></tr>
+          </thead>
+          <tbody id="user-rows"></tbody>
+        </table>
+      </div>
+      <p id="empty-list" class="muted" hidden>No users match.</p>
+    </section>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/users.js"></script>
+</body>
+</html>

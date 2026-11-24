@@ -1,0 +1,211 @@
+/* Shared styles for all pages. Keep page-specific styles in their own section. */
+
+:root {
+  --bg: #f6f8fb;
+  --surface: #ffffff;
+  --text: #14213d;
+  --muted: #5b6475;
+  --primary: #1f5a96;
+  --border: #d9e1ec;
+  --danger: #b42318;
+  --ok: #1a7f37;
+  --radius: 8px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.topbar {
+  background: var(--primary);
+  color: #fff;
+  padding: 12px 24px;
+}
+
+.brand { font-weight: 600; }
+
+.container {
+  max-width: 960px;
+  margin: 32px auto;
+  padding: 0 24px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+button {
+  background: var(--primary);
+  color: #fff;
+  border: 0;
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+input, select, textarea {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 100%;
+}
+
+.error { color: var(--danger); }
+.ok { color: var(--ok); }
+
+/* ---- Shared layout added with the login page (Hana Fady, #10) ---------------- */
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+}
+
+.nav { display: flex; flex-wrap: wrap; gap: 4px 16px; flex: 1; }
+.nav a { color: #fff; text-decoration: none; opacity: 0.85; }
+.nav a:hover, .nav a:focus-visible { opacity: 1; text-decoration: underline; }
+.nav a[aria-current="page"] { opacity: 1; font-weight: 600; }
+
+.user-menu { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.who { font-size: 0.9rem; opacity: 0.9; }
+
+.link-button {
+  background: none;
+  color: inherit;
+  padding: 4px 6px;
+  text-decoration: underline;
+}
+
+a.button {
+  display: inline-block;
+  background: var(--primary);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  text-decoration: none;
+}
+
+.container.narrow { max-width: 420px; }
+
+.form { display: flex; flex-direction: column; gap: 8px; }
+.form h1 { margin: 0 0 4px; }
+.form label { font-weight: 600; margin-top: 8px; }
+.form button[type="submit"] { margin-top: 16px; }
+
+.password-row { display: flex; gap: 8px; align-items: center; }
+.password-row .link-button { color: var(--primary); white-space: nowrap; }
+
+input:focus-visible, button:focus-visible, a:focus-visible {
+  outline: 3px solid #8ab4e8;
+  outline-offset: 2px;
+}
+
+.muted { color: var(--muted); }
+.small { font-size: 0.875rem; }
+
+.notice {
+  background: #eef4fb;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin: 0;
+}
+
+.page-list { padding-left: 20px; margin: 0; }
+.page-list li { margin: 6px 0; }
+
+/* ---- Screens: tables, toolbars, badges, buttons (Hana Fady, #10) ------------- */
+
+.container.wide { max-width: 1120px; }
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.page-head h1, .page-head h2 { margin: 0.4em 0; }
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin: 12px 0;
+}
+.toolbar label { display: flex; flex-direction: column; font-size: 0.875rem; font-weight: 600; min-width: 180px; }
+.toolbar label input, .toolbar label select { font-weight: 400; }
+
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+table.data { width: 100%; border-collapse: collapse; }
+table.data th, table.data td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.data th { background: #eef2f8; font-size: 0.85rem; }
+table.data tbody tr:last-child td { border-bottom: 0; }
+table.data tr.inactive td { color: var(--muted); }
+table.data select { width: auto; }
+
+.clamp { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; max-width: 48ch; }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  background: #e7edf5;
+  color: var(--text);
+}
+.badge.active { background: #dcf3e3; color: #135c2a; }
+.badge.archived { background: #ececec; color: #555; }
+.badge.internal { background: #fff1d6; color: #7a4b00; }
+
+.message { border-radius: var(--radius); padding: 8px 12px; border: 1px solid var(--border); background: #eef4fb; }
+.message.ok { color: var(--ok); background: #edf8f0; border-color: #bfe3c9; }
+.message.error { color: var(--danger); background: #fdeeed; border-color: #f2c4c0; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button.secondary { background: var(--surface); color: var(--primary); border: 1px solid var(--primary); }
+button.danger { background: var(--danger); }
+button.small { padding: 4px 10px; font-size: 0.85rem; }
+button.icon { background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 2px 8px; }
+button.icon.danger-text { color: var(--danger); }
+.order-buttons { white-space: nowrap; }
+
+fieldset { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-top: 12px; }
+legend { font-weight: 600; padding: 0 6px; }
+
+.task-editor { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.task-row {
+  display: grid;
+  grid-template-columns: 2.2em minmax(12em, 1fr) 7.5em 13em 8em auto;
+  gap: 8px;
+  align-items: center;
+}
+.task-row .inline { display: flex; align-items: center; gap: 4px; font-weight: 400; margin: 0; }
+.task-row .inline input { width: 5em; }
+.task-number { color: var(--muted); text-align: right; }
+.row-buttons { display: flex; gap: 4px; }
+
+@media (max-width: 760px) {
+  .task-row { grid-template-columns: 2em 1fr; }
+  .task-row > :not(.task-number):not(.f-task-title) { grid-column: 2; }
+}
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}

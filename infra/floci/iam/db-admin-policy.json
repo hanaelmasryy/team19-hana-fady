@@ -1,0 +1,32 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadDatabaseSettings",
+      "Effect": "Allow",
+      "Action": ["rds:DescribeDBInstances", "rds:ListTagsForResource", "rds:DescribeDBSnapshots"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "BackupsAndSafeChangesOnThisDatabaseOnly",
+      "Effect": "Allow",
+      "Action": ["rds:CreateDBSnapshot", "rds:ModifyDBInstance", "rds:AddTagsToResource"],
+      "Resource": [
+        "arn:aws:rds:${REGION}:${ACCOUNT_ID}:db:${DB_INSTANCE_ID}",
+        "arn:aws:rds:${REGION}:${ACCOUNT_ID}:snapshot:${DB_INSTANCE_ID}-*"
+      ]
+    },
+    {
+      "Sid": "AdminCannotReadAppDataOrDeleteTheDatabase",
+      "Effect": "Deny",
+      "Action": ["rds-db:connect", "rds:DeleteDBInstance", "rds:DeleteDBSnapshot"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "NoPrivilegeEscalation",
+      "Effect": "Deny",
+      "Action": ["iam:*", "sts:AssumeRole"],
+      "Resource": "*"
+    }
+  ]
+}
