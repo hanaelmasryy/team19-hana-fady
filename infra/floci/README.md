@@ -15,7 +15,7 @@ Other parts of the AWS version are owned by the others: plan events to SQS (Hana
 
 | IAM role | Can | Cannot |
 |---|---|---|
-| `team19-api` | log in as `app_rw` | log in as any other user; touch the RDS instance; any IAM action |
+| `team19-api` | log in as `app_rw`, `dashboard_ro` and `notifier`: the API process also serves the dashboard routes and the daily job, and each of its three pools still uses its own least-privilege database user | log in as the master user; touch the RDS instance; any IAM action (including `sts:AssumeRole`) |
 | `team19-dashboard` | log in as `dashboard_ro` | same as above |
 | `team19-notifier` | log in as `notifier` | same as above |
 | `team19-db-admin` | read settings; take snapshots and add tags **of `team19-db` only** | read app data (`rds-db:connect` denied); change settings (`rds:ModifyDBInstance` denied: it could reset the master password, turn IAM login off or make the database public); delete the database or snapshots; any IAM action |
@@ -32,6 +32,7 @@ All checks are real requests under Floci's **IAM policy enforcement**:
 4. **AWS API calls**: the app roles can't create IAM users, delete or change the database, or read the master secret; `team19-db-admin` can read the settings but can't reset the master password, turn IAM login off, delete the database or raise its own rights; deletion protection stops even the administrator.
 5. **Policy simulation** (`iam simulate-principal-policy`): the allow / implicit deny / explicit deny decision for each role and action.
 6. **`backend/db/check.sql`** runs on RDS: all role and data-rule checks pass.
+7. **The app's own code** (`backend/src/db/pool.js` with `DB_IAM_AUTH=true`) logs in with IAM tokens: the API process opens its three pools (`app_rw`, `dashboard_ro`, `notifier`), the dashboard role logs in as `dashboard_ro`, and the dashboard role can't open the API's read/write pool.
 
 Results are shown on the GitHub Actions run page (**Summary**) and saved as the `floci-rds-iam-results` artifact.
 
@@ -53,6 +54,12 @@ bash infra/floci/setup.sh
 bash infra/floci/test.sh
 docker rm -f floci        # when finished (also remove the team19-db container Floci started)
 ```
+
+## Connecting the app (for the AWS version)
+
+Set `DB_IAM_AUTH=true` and `AWS_REGION`, and give the three database URLs **without a password**, for example `DATABASE_URL=postgresql://app_rw@localhost:7001/onboarding`. `backend/src/db/pool.js` then asks `@aws-sdk/rds-signer` for a fresh 15-minute token for every new connection, signed with the credentials of the role the code runs as (`team19-api`, `team19-dashboard`, `team19-notifier`). No database password is stored anywhere. Without `DB_IAM_AUTH` the pool works exactly as before (Neon, local Postgres).
+
+**One IAM role per process, one database user per pool.** The API, its dashboard routes and the daily job run in the same process, so that process runs as `team19-api`, which may log in as all three database users. Least privilege inside the process comes from the database users: dashboard queries use the read-only `dashboard_ro` pool, the daily job uses `notifier`, everything else `app_rw`, so an SQL-injection bug in a dashboard route can still only read. Giving each pool its own IAM role would not separate anything, because one process would hold all three roles' credentials, and every role has an explicit Deny on `sts:AssumeRole`. `team19-dashboard` and `team19-notifier` are for parts that run as their own process: Hana Anwar's plan-events worker already runs as `team19-notifier`.
 
 ## Notes and limits
 

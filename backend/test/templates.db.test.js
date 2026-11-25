@@ -89,12 +89,14 @@ test('not logged in -> 401; Staff or Customer creating -> 403', { skip: SKIP }, 
 });
 
 test('invalid rules -> 400 and nothing is saved', { skip: SKIP }, async () => {
-  const before = await pool.db().query('SELECT COUNT(*)::int AS n FROM templates');
-  const bad = sample({ tasks: [{ title: 'x', offsetDays: 1, visibility: 'internal', actor: 'customer' }] });
+  // Count only this test's own title: other test files add templates in
+  // parallel, so a whole-table count is not stable.
+  const title = `Invalid rules ${run}`;
+  const bad = sample({ title, tasks: [{ title: 'x', offsetDays: 1, visibility: 'internal', actor: 'customer' }] });
   const res = await createTemplate(bad);
   assert.strictEqual(res.status, 400);
-  const after = await pool.db().query('SELECT COUNT(*)::int AS n FROM templates');
-  assert.strictEqual(after.rows[0].n, before.rows[0].n);
+  const saved = await pool.db().query('SELECT COUNT(*)::int AS n FROM templates WHERE title = $1', [title]);
+  assert.strictEqual(saved.rows[0].n, 0);
 });
 
 test('Staff can list and read templates; Customer cannot', { skip: SKIP }, async () => {

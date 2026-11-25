@@ -2,10 +2,14 @@
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "ConnectAsOwnDatabaseUserOnly",
+      "Sid": "ConnectAsTheThreeAppDatabaseUsersOnly",
       "Effect": "Allow",
       "Action": "rds-db:connect",
-      "Resource": "arn:aws:rds-db:${REGION}:${ACCOUNT_ID}:dbuser:${DBI_RESOURCE_ID}/app_rw"
+      "Resource": [
+        "arn:aws:rds-db:${REGION}:${ACCOUNT_ID}:dbuser:${DBI_RESOURCE_ID}/app_rw",
+        "arn:aws:rds-db:${REGION}:${ACCOUNT_ID}:dbuser:${DBI_RESOURCE_ID}/dashboard_ro",
+        "arn:aws:rds-db:${REGION}:${ACCOUNT_ID}:dbuser:${DBI_RESOURCE_ID}/notifier"
+      ]
     },
     {
       "Sid": "NoInstanceManagement",

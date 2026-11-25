@@ -144,7 +144,7 @@ section "2. Each role can log in only as its own database user"
 expect ok      "team19-api logs in as app_rw"                 '^app_rw$'       iam_sql team19-api       app_rw       'SELECT current_user'
 expect ok      "team19-dashboard logs in as dashboard_ro"     '^dashboard_ro$' iam_sql team19-dashboard dashboard_ro 'SELECT current_user'
 expect ok      "team19-notifier logs in as notifier"          '^notifier$'     iam_sql team19-notifier  notifier     'SELECT current_user'
-expect refused "team19-api cannot log in as dashboard_ro"     ''               iam_sql team19-api       dashboard_ro 'SELECT 1'
+expect ok      "team19-api can also log in as dashboard_ro (dashboard routes run in the API)" '^dashboard_ro$' iam_sql team19-api dashboard_ro 'SELECT current_user'
 expect refused "team19-dashboard cannot log in as app_rw"     ''               iam_sql team19-dashboard app_rw       'SELECT 1'
 expect refused "team19-notifier cannot log in as app_rw"      ''               iam_sql team19-notifier  app_rw       'SELECT 1'
 expect refused "team19-db-admin cannot log in as app_rw (explicit deny)" '' iam_sql team19-db-admin app_rw 'SELECT 1'
@@ -196,7 +196,9 @@ expect refused "Even the administrator cannot delete it: deletion protection" 'p
 # =====================================================================
 section "5. Policy simulation (IAM policy evaluator)"
 expect_decision "team19-api: connect as app_rw"            allowed      team19-api       rds-db:connect "$DBUSER_ARN/app_rw"
-expect_decision "team19-api: connect as dashboard_ro"      implicitDeny team19-api       rds-db:connect "$DBUSER_ARN/dashboard_ro"
+expect_decision "team19-api: connect as notifier (daily job in the API)" allowed team19-api rds-db:connect "$DBUSER_ARN/notifier"
+expect_decision "team19-api: connect as the master user"   implicitDeny team19-api       rds-db:connect "$DBUSER_ARN/$MASTER_USER"
+expect_decision "team19-dashboard: connect as app_rw"      implicitDeny team19-dashboard rds-db:connect "$DBUSER_ARN/app_rw"
 expect_decision "team19-dashboard: connect as dashboard_ro" allowed     team19-dashboard rds-db:connect "$DBUSER_ARN/dashboard_ro"
 expect_decision "team19-notifier: connect as notifier"     allowed      team19-notifier  rds-db:connect "$DBUSER_ARN/notifier"
 expect_decision "team19-notifier: connect as app_rw"       implicitDeny team19-notifier  rds-db:connect "$DBUSER_ARN/app_rw"
@@ -221,6 +223,33 @@ if [ "$CHECK_FAIL" = 0 ] && [ "$CHECK_PASS" -ge 26 ]; then
   record ok "check.sql: $CHECK_PASS/$CHECK_PASS role and data-rule checks pass on RDS" ""
 else
   record fail "check.sql: $CHECK_PASS PASS, $CHECK_FAIL FAIL" "$(grep -m3 -E '^FAIL|ERROR' <<<"$CHECK_OUT" | tr '\n' ' ')"
+fi
+
+# =====================================================================
+section "7. The app's own code logs in with IAM tokens (backend/src/db/pool.js)"
+# The app connects through src/db/pool.js with DB_IAM_AUTH=true: no password
+# in the URL, a fresh IAM token for every new connection, signed with the
+# role the code runs as. The API process also serves the dashboard routes and
+# the daily job, so team19-api opens all three pools; each pool still logs in
+# as its own least-privilege database user. A separately deployed dashboard
+# (team19-dashboard) can't open the API's read/write pool.
+app_login() {  # role env-var db-user pool-function  -> prints current_user
+  local role="$1" var="$2" user="$3" fn="$4"
+  ( cd "$ROOT/backend" && as_role "$role" env DB_IAM_AUTH=true AWS_REGION="$REGION" \
+      "$var=postgresql://$user@$DB_HOST:$DB_PORT/$DB_NAME" node -e "
+        const db = require('./src/db/pool').$fn();
+        db.query('SELECT current_user AS u')
+          .then((r) => { console.log(r.rows[0].u); return db.end(); })
+        .catch((e) => { console.error(e.message); process.exit(1); });" )
+}
+if ( cd "$ROOT/backend" && npm ci --omit=dev --no-audit --no-fund >/dev/null 2>&1 ); then
+  expect ok      "API code logs in as app_rw with an IAM token (team19-api)"         '^app_rw$'       app_login team19-api       DATABASE_URL           app_rw       db
+  expect ok      "Dashboard code logs in as dashboard_ro with an IAM token"          '^dashboard_ro$' app_login team19-dashboard DASHBOARD_DATABASE_URL dashboard_ro dashboardDb
+  expect ok      "API process opens the dashboard pool as dashboard_ro"            '^dashboard_ro$' app_login team19-api       DASHBOARD_DATABASE_URL dashboard_ro dashboardDb
+  expect ok      "API process opens the daily-job pool as notifier"                '^notifier$'     app_login team19-api       NOTIFIER_DATABASE_URL  notifier     notifierDb
+  expect refused "Dashboard credentials cannot open the API pool (app_rw)"          ''               app_login team19-dashboard DATABASE_URL           app_rw       db
+else
+  record fail "npm ci in backend/ (needed for the app-code checks)" "see the job log"
 fi
 
 # =====================================================================
